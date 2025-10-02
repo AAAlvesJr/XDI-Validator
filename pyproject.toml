@@ -1,0 +1,38 @@
+[build-system]
+requires = ["hatchling >= 1.26"]
+build-backend = "hatchling.build"
+
+[project]
+name = "xdi_validator"
+version = "1.0.0-alpha"
+dependencies = [
+  "jsonschema>=4.23.0",
+]
+requires-python = ">=3.13"
+
+authors = [
+  {name = "Antonio Augusto Alves Jr", email = "aalvesju@gmail.com"},
+]
+
+maintainers = [
+  {name = "Antonio Augusto Alves Jr", email = "aalvesju@gmail.com"},
+]
+description = "A standalone JSON Schema based validator for XDI files used to save XAS data aiming to be fully compliant with the XDI/1.0 specification.."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+keywords = ["xas", "xdi", "validation"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License"
+]
+
+[project.urls]
+Homepage = "https://github.com/AAAlvesJr/XDI-Validator"
+Documentation = "https://github.com/AAAlvesJr/XDI-Validator"
+Repository = "https://github.com/AAAlvesJr/XDI-Validator.git"
+
+
