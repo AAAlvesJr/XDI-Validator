@@ -46,11 +46,19 @@ def validate(file: io.TextIOWrapper) -> tuple[list, dict]:
     regex_header_end = r"^#\s+---(-*)$"
     regex_comment = r"#\s+((\w*\W*\s*)+)"
     regex_float = r"([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[Ee]([+-]?\d+))?"
+    regex_annotation_line = r"(\s*\w+)"
+    mandatory_annotation_line = ["energy", "angle",
+                                 "i0", "itrans", "ifluor", "irefer",
+                                 "mutrans", "mufluor", "murefer",
+                                 "normtrans", "normfluor", "normrefer",
+                                 "k", "chi", "chi_mag", "chi_pha", "chi_re", "chi_im",
+                                 "r", "chir_mag", "chir_pha", "chir_re", "chir_im"]
 
     versions = []
     fields = []
     comments = []
     data = []
+    annotation_fields =[]
     data_missed = []
     error_list = []
 
@@ -80,10 +88,16 @@ def validate(file: io.TextIOWrapper) -> tuple[list, dict]:
             comments.append(match_comment)
             continue
         elif header_ended:
-            entry = re.finditer(regex_float, line, flags=re.IGNORECASE)
-            entry_list = [number.group(0) for number in entry]
-            if len(entry_list) and not match_comment:
-                data.append([float(number) for number in entry_list])
+            if match_comment:
+                annotations = re.finditer(regex_annotation_line, line, flags=re.IGNORECASE )
+                annotation_fields += [ (annotation, index) for annotation in annotations ]
+                continue
+            else:
+                entry = re.finditer(regex_float, line, flags=re.IGNORECASE)
+                entry_list = [number.group(0) for number in entry]
+                if len(entry_list) and not match_comment:
+                    data.append([float(number) for number in entry_list])
+                continue
         else:
             data_missed.append(line)
 
@@ -135,9 +149,31 @@ def validate(file: io.TextIOWrapper) -> tuple[list, dict]:
         for i in range(len(xdi_dict["column"])):
             xdi_dict["data"][i].append(match[i])
 
+    # DATA COMMENT LINE ==========================>
+    if "array_labels_line" not in xdi_dict:
+        xdi_dict["array_labels_line"]=[]
+        path_dict["array_labels_line"]={}
+    for  label, idx in annotation_fields:
+        xdi_dict["array_labels_line"].append( label.group(0).lower().strip() )
+        path_dict["array_labels_line"][label.group(0).lower().strip()]=idx
     # IGNORED DATA ===============================>
 
     json_repr = json.dumps(xdi_dict, indent=4, ensure_ascii=False)
+
+    #if array label line is present, check if all declared fields are also declared in column namespace
+    list_declared_columns = [value.split(' ')[0] for _, value in xdi_dict["column"].items()]
+    if annotation_fields:
+        for field in xdi_dict["array_labels_line"]:
+            if field not in list_declared_columns:
+                error_list.append(f"[ERROR] <Line>: {path_dict["array_labels_line"][field]} - "
+                                  f"<Message>: {field} is declared in 'array label line' but not in column namespace.")
+        for field in list(set( list_declared_columns) & set( mandatory_annotation_line )):
+            if field not in xdi_dict["array_labels_line"]:
+                error_list.append(f"[ERROR] <Message>: The {field} is declared in column namespace but not in 'array label line'.")
+
+    if not annotation_fields and list(set( list_declared_columns) & set( mandatory_annotation_line )):
+         error_list.append(f"[ERROR] <Message>: The 'array label line' is mandatory when declared columns are in the list {str(mandatory_annotation_line)}.")
+
 
     Vtor = jsonschema.Draft202012Validator(get_schema())
 
