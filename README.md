@@ -1,5 +1,6 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![PyPI - Version](https://img.shields.io/pypi/v/xdi-validator?pypiBaseUrl=https%3A%2F%2Fpypi.org&style=flat-square)](https://pypi.org/project/xdi-validator/)
+[![Building and testing](https://github.com/AAAlvesJr/XDI-Validator/actions/workflows/python-test.yml/badge.svg)](https://github.com/AAAlvesJr/XDI-Validator/actions/workflows/python-test.yml)
 
 # XDI-Validator
 
