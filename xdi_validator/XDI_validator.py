@@ -152,7 +152,7 @@ def validate(file: io.TextIOWrapper) -> tuple[list, dict]:
             error_list[f"{match.group('namespace').lower()}.{match.group('tag').lower()}"].append(
                 f"[ERROR] - <Line>: {index} - <Message>: the tag '{match.group('tag').lower()}' in "
                 f"the namespace '{match.group('namespace').lower()}' is repeated and will be overwritten by the latest appearance. "
-                f"Previous definition at line {path_dict[f"{match.group('namespace').lower()}.{match.group('tag').lower()}"]}"
+                f"Previous definition at line {path_dict[f'{match.group('namespace').lower()}.{match.group('tag').lower()}']}"
             )
 
         xdi_dict[match.group("namespace").lower()][match.group("tag").lower()] = (
