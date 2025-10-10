@@ -80,7 +80,7 @@ def validate(file: io.TextIOWrapper) -> tuple[list, dict]:
     data = []
     annotation_fields =[]
     data_missed = []
-    error_list = []
+    error_list = {}
 
     fields_ended = False
     header_ended = False
@@ -143,6 +143,18 @@ def validate(file: io.TextIOWrapper) -> tuple[list, dict]:
         if match.group("namespace").lower() not in xdi_dict:
             xdi_dict[match.group("namespace").lower()] = {}
             path_dict[match.group("namespace").lower()] = {}
+
+        if match.group("tag").lower() in xdi_dict[match.group("namespace").lower()]:
+
+            if f"{match.group("namespace").lower()}.{match.group("tag").lower()}" not in error_list:
+                 error_list[f"{match.group("namespace").lower()}.{match.group("tag").lower()}"]=[]
+
+            error_list[f"{match.group("namespace").lower()}.{match.group("tag").lower()}"].append(
+                f"[ERROR] - <Line>: {index} - <Message>: the tag '{match.group("tag").lower()}' in "
+                f"the namespace '{match.group("namespace").lower()}' is repeated and will be overwritten by the latest appearance. "
+                f"Previous definition at line {path_dict[f"{match.group("namespace").lower()}.{match.group("tag").lower()}"]}"
+            )
+
         xdi_dict[match.group("namespace").lower()][match.group("tag").lower()] = (
             match.group("value")
         )
@@ -160,12 +172,18 @@ def validate(file: io.TextIOWrapper) -> tuple[list, dict]:
     for idx, match in enumerate(data):
         if "data" not in xdi_dict:
             xdi_dict["data"] = list([list() for _ in range(len(xdi_dict["column"]))])
+
         if len(match) != len(xdi_dict["column"]):
-            error_list.append(
+
+            if "data" not in error_list:
+                error_list["data"]=[]
+
+            error_list["data"].append(
                 f"[ERROR] <Data Line>: {idx} - <Message>: The number of tags in Column namespace ({len(xdi_dict['column'])}) "
                 f"does not match the number of measurements data section ({len(match)})."
             )
             continue
+
         for i in range(len(xdi_dict["column"])):
             xdi_dict["data"][i].append(match[i])
 
@@ -182,32 +200,53 @@ def validate(file: io.TextIOWrapper) -> tuple[list, dict]:
 
     #if array label line is present, check if all declared fields are also declared in column namespace
     list_declared_columns = [value.split(' ')[0] for _, value in xdi_dict["column"].items()]
+
     if annotation_fields:
         for field in xdi_dict["array_labels_line"]:
             if field not in list_declared_columns:
-                error_list.append(f"[ERROR] <Line>: {path_dict["array_labels_line"][field]} - "
+
+                if "array_labels_line" not in error_list:
+                    error_list[ "array_labels_line"]=[]
+
+                error_list[ "array_labels_line"].append(f"[ERROR] <Line>: {path_dict["array_labels_line"][field]} - "
                                   f"<Message>: {field} is declared in 'array label line' but not in column namespace.")
         for field in list(set( list_declared_columns) & set( mandatory_annotation_line )):
             if field not in xdi_dict["array_labels_line"]:
-                error_list.append(f"[ERROR] <Message>: The {field} is declared in column namespace but not in 'array label line'.")
+
+                if "array_labels_line" not in error_list:
+                    error_list[ "array_labels_line"]=[]
+
+                error_list[ "array_labels_line"].append(f"[ERROR] <Message>: The {field} is declared in column namespace but not in 'array label line'.")
 
     if not annotation_fields and list(set( list_declared_columns) & set( mandatory_annotation_line )):
-         error_list.append(f"[ERROR] <Message>: The 'array label line' is mandatory when declared columns are in the list {str(mandatory_annotation_line)}.")
 
+        if "array_labels_line" not in error_list:
+            error_list[ "array_labels_line"]=[]
 
+        error_list[ "array_labels_line"].append(f"[ERROR] <Message>: The 'array label line' is mandatory when declared columns are in the list {str(mandatory_annotation_line)}.")
+
+    ## validate overall structure
     Vtor = jsonschema.Draft202012Validator(get_schema())
 
     try:
+
         Vtor.validate(xdi_dict)
+
     except jsonschema.exceptions.ValidationError:
 
         for index, error in enumerate(Vtor.iter_errors(xdi_dict)):
+
             key = error.json_path.replace("$.", "")
+
             if key in path_dict:
                 line_number = path_dict[key]
             else:
                 line_number = 1
-            error_list.append(f"[ERROR] <Path>: {error.json_path} - <Line>: {line_number} - <Message>: {error.message}")
+
+            if key not in error_list:
+                error_list[key]=[]
+
+            error_list[key].append(f"[ERROR] <Path>: {error.json_path} - <Line>: {line_number} - <Message>: {error.message}")
 
     return error_list, xdi_dict
 
@@ -253,7 +292,7 @@ def get_schema() -> dict:
                 "type": "object",
                 "properties": {
                     "name": {"type": "string"},
-                    "d_spacing": {"type": "string"},
+                    "d_spacing": {"type": "number"},
                 },
                 "required": ["d_spacing"],
             },
@@ -347,15 +386,15 @@ def get_schema() -> dict:
                 "properties": {
                     "start_time": {
                         "type": "string",
-                        "pattern": "^(?# Format: ISO 8601 speciﬁcation for combined dates and times - [YYYY]-[MM]-[DD]T[HH]:[MM]:[SS][timezone]; Examples: '2007-04-05T14:30:22+02:00','2007-04-05T14:30:22+CEST')[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|1[0-9]|2[0-9]|3[0-1])T(0[0-9]|1[0-9]|2[0-3]):([0-5][0-9])(:([0-5][0-9]))?((\\+|-)?(((0[0-9]|1[0-2]):([0-9][0-5])))|([A-Za-z]+))?$",
+                        "pattern": "^(?# Format: ISO 8601 speciﬁcation for combined dates and times - [YYYY]-[MM]-[DD]T[HH]:[MM]:[SS][timezone]; Examples: 2007-04-05T14:30:22+02:00, 2007-04-05T14:30:22+CEST)[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|1[0-9]|2[0-9]|3[0-1])T(0[0-9]|1[0-9]|2[0-3]):([0-5][0-9])(:([0-5][0-9]))?((\\+|-)?(((0[0-9]|1[0-2]):([0-9][0-5])))|([A-Za-z]+))?$",
                     },
                     "end_time": {
                         "type": "string",
-                        "pattern": "^(?# Format: ISO 8601 speciﬁcation for combined dates and times - [YYYY]-[MM]-[DD]T[HH]:[MM]:[SS][timezone]; Examples: '2007-04-05T14:30:22+02:00','2007-04-05T14:30:22+CEST')[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|1[0-9]|2[0-9]|3[0-1])T(0[0-9]|1[0-9]|2[0-3]):([0-5][0-9])(:([0-5][0-9]))?((\\+|-)?(((0[0-9]|1[0-2]):([0-9][0-5])))|([A-Za-z]+))?$",
+                        "pattern": "^(?# Format: ISO 8601 speciﬁcation for combined dates and times - [YYYY]-[MM]-[DD]T[HH]:[MM]:[SS][timezone]; Examples: 2007-04-05T14:30:22+02:00, 2007-04-05T14:30:22+CEST)[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|1[0-9]|2[0-9]|3[0-1])T(0[0-9]|1[0-9]|2[0-3]):([0-5][0-9])(:([0-5][0-9]))?((\\+|-)?(((0[0-9]|1[0-2]):([0-9][0-5])))|([A-Za-z]+))?$",
                     },
                     "edge_energy": {
                         "type": "string",
-                        "pattern": "^(?# Format: '[float] [unit]'; Accepted Units: eV. keV, 1/Å )([+-]?(?=\\.\\d|\\d)(?:\\d+)?(?:\\.?\\d*))(?:[Ee]([+-]?\\d+))?\\s+(eV|keV|1/Å)$",
+                        "pattern": "^(?# Format: [float] [unit]; Accepted Units: eV. keV, 1/Å )([+-]?(?=\\.\\d|\\d)(?:\\d+)?(?:\\.?\\d*))(?:[Ee]([+-]?\\d+))?\\s+(eV|keV|1/Å)$",
                     },
                 },
             },
@@ -380,7 +419,7 @@ def get_schema() -> dict:
                         "pattern": "^(?# Format: measured absorption edge)(K|L|L1|L2|L3|M|M1|M2|M3|M4|M5|N|N1|N2|N3|N4|N5|N6|N7|O|O1|O2|O3|O4|O5|O6|O7)$",
                     },
                 },
-                "required": ["symbol"],
+                "required": ["symbol", "edge"],
             },
             "column": {
                 "description": "Tags used for identifying the data columns and their units",
