@@ -209,7 +209,7 @@ def validate(file: io.TextIOWrapper) -> tuple[list, dict]:
                 if "array_labels_line" not in error_list:
                     error_list[ "array_labels_line"]=[]
 
-                error_list[ "array_labels_line"].append(f"[ERROR] <Line>: {path_dict["array_labels_line"][field]} - "
+                error_list[ "array_labels_line"].append(f"[ERROR] <Line>: {path_dict['array_labels_line'][field]} - "
                                   f"<Message>: {field} is declared in 'array label line' but not in column namespace.")
         for field in list(set( list_declared_columns) & set( mandatory_annotation_line )):
             if field not in xdi_dict["array_labels_line"]:
