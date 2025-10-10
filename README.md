@@ -7,7 +7,7 @@
 ## What is it?
 
 XDI-Validator is a standalone JSON Schema based validator for XDI files.
-XDI (*.xdi) is a format used to save XAS data. This validator aiming to be
+XDI (*.xdi) is a format used to save XAS data. This validator aim to be
 fully compliant with the XDI/1.0 specification, as detailed in the documents 
 [XAS Data Interchange Format Draft Specification, version 1.0](https://github.com/XraySpectroscopy/XAS-Data-Interchange/blob/master/specification/xdi_spec.pdf)
 and [Dictionary of XAS Data Interchange Metadata](https://github.com/XraySpectroscopy/XAS-Data-Interchange/blob/master/specification/xdi_dictionary.pdf).
@@ -33,24 +33,27 @@ with open('filename.xdi', 'r') as xdi_document:
     # check if there are errors
     if xdi_errors:
         print('XDI is invalid!')
-        for error in xdi_errors:
-            print(error)
+        print(xdi_errors)
     else:
         print('XDI is valid!')
         print(xdi_dict)
     
 ```
+Basically, the method `xdi_validator.validate()` the `*.xdi` file-like object and will return a dictionary with the found errors per each field, 
+and a representation of the contents of the `*.xdi` as a dictionary. The dictionary of errors is organized in the following way. 
+The keys are the path (`Namespace.tag`) of the invalid field, and the corresponding value is the list of errors.
 
-Note: Sure, users can also to use the library for parsing and converting XDI files into json. 
+Note: Sure, users can also to use the library for parsing and converting XDI files into json representation. 
 
 ## How to install?
 
-XDI-Validator is available in PyPI. The project page is https://pypi.org/project/xdi-validator/.  
+XDI-Validator is available in PyPI. The project page is https://pypi.org/project/xdi-validator/.
 To install XDI-Validator on your development environment, just issue the command:
 
 ```terminal
  pip install xdi-validator
 ```
+
 To build and install from the source code do:
 
 1. Clone the repository: `git clone https://github.com/AAAlvesJr/XDI-Validator.git`
