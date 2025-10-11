@@ -30,6 +30,7 @@ class XDIEndOfHeaderMissingError(Exception):
         super().__init__(self.message)
 
 
+
 def validate(file: io.TextIOWrapper) -> tuple[list, dict]:
     """
     Analyse and validate contents of a XDI file against the XDI specification version 1.0 as
@@ -59,6 +60,24 @@ def validate(file: io.TextIOWrapper) -> tuple[list, dict]:
         :exception: Raises a XDIEndOfHeaderMissingError if the token to mark the end of header is not present or
         is malformed.
     """
+
+    # helper function to check if a string is actually a number
+    # if it is a integer, function returns a integer
+    # if it is a float, function returns a float
+    # otherwise, it will return a string
+    def __cast_to_number(word:str):
+        regex_float = r"^([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[Ee]([+-]?\d+))?$"
+        regex_int = r"^\d+$"
+        match_float = re.match(regex_float, word, flags=re.IGNORECASE)
+        match_int   = re.match(regex_int, word, flags=re.IGNORECASE)
+        if match_float and match_int:
+            return int(word)
+        elif match_float and not match_int:
+            return float(word)
+        else:
+            return word
+
+
 
     regex_version = r"^# XDI/(?P<version>\d+)\.(?P<subversion>\d+)\.?(?P<patch>\d*)\s+?(?P<application>[\w\W\D]*)$"
     regex_fields = r"^# (?P<namespace>\w+)\.(?P<tag>\w+):\s*(?P<value>[\w\W\s*]+)\n$"
@@ -157,7 +176,7 @@ def validate(file: io.TextIOWrapper) -> tuple[list, dict]:
             )
 
         xdi_dict[match.group("namespace").lower()][match.group("tag").lower()] = (
-            match.group("value")
+            __cast_to_number(match.group("value"))
         )
         path_dict[
             f"{match.group('namespace').lower()}.{match.group('tag').lower()}"
