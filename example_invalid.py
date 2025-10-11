@@ -1,7 +1,7 @@
 from xdi_validator import validate
 import json
 
-invalid_xdi   = open("tests/wrong_fields.xdi", "r")
+invalid_xdi   = open("invalid.xdi", "r")
 
 errors, data = validate(invalid_xdi)
 
