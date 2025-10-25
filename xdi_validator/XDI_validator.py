@@ -31,7 +31,7 @@ class XDIEndOfHeaderMissingError(Exception):
 
 
 
-def validate(file: io.TextIOWrapper) -> tuple[list, dict]:
+def validate(file: io.TextIOWrapper, include_data: bool = True) -> tuple[list, dict]:
     """
     Analyse and validate contents of a XDI file against the XDI specification version 1.0 as
     described in https://github.com/XraySpectroscopy/XAS-Data-Interchange/blob/master/specification/xdi_spec.pdf.
@@ -42,7 +42,10 @@ def validate(file: io.TextIOWrapper) -> tuple[list, dict]:
 
         xdi_document = open('filename.xdi', 'r')
         try:
-            xdi_errors, xdi_dict = validate_xdi(xdi_document)
+            # Get only header information
+            xdi_errors, xdi_dict = validate_xdi(xdi_document, include_data=False)
+            # Or get both header and data columns
+            xdi_errors, xdi_dict = validate_xdi(xdi_document, include_data=True)
         except XDIEndOfHeaderMissingError as ex:
             print(ex.message)
 
@@ -53,8 +56,9 @@ def validate(file: io.TextIOWrapper) -> tuple[list, dict]:
                 print(error)
     ```
     Args:
-
         :param file: File-like object containing a xdi document.
+        :param include_data: Boolean flag to control whether to include data columns in the output dictionary.
+                           If False, only header information will be included.
         :return: Tuple(error_list, json_repr), where error_list is a list containing errors found in the xdi and
         json_repr is a json dict representing the structure of the xdi file.
         :exception: Raises a XDIEndOfHeaderMissingError if the token to mark the end of header is not present or
@@ -189,14 +193,15 @@ def validate(file: io.TextIOWrapper) -> tuple[list, dict]:
         xdi_dict["comments"].append(match.group(1).rstrip().strip())
 
     # DATA =======================================>
-    for idx, match in enumerate(data):
-        if "data" not in xdi_dict:
-            xdi_dict["data"] = list([list() for _ in range(len(xdi_dict["column"]))])
+    if include_data:
+        for idx, match in enumerate(data):
+            if "data" not in xdi_dict:
+                xdi_dict["data"] = list([list() for _ in range(len(xdi_dict["column"]))])
 
-        if len(match) != len(xdi_dict["column"]):
+            if len(match) != len(xdi_dict["column"]):
 
-            if "data" not in error_list:
-                error_list["data"]=[]
+                if "data" not in error_list:
+                    error_list["data"]=[]
 
             error_list["data"].append(
                 f"[ERROR] <Data Line>: {idx} - <Message>: The number of tags in Column namespace ({len(xdi_dict['column'])}) "
