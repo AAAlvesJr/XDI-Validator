@@ -45,6 +45,42 @@ The keys are the path (`Namespace.tag`) of the invalid field, and the correspond
 
 Note: Sure, users can also to use the library for parsing and converting XDI files into json representation. 
 
+Additionally, it is possible to convert a dictionary to XDI format and write it to file using the `xdi_validator.write_xdi()` function. 
+Look the example below for a possible use case for this functionality:
+
+```python
+# import the functionality from the module
+from xdi_validator import validate, write_xdi, XDIEndOfHeaderMissingError
+
+# open the xdi file
+xdi
+with open('filename.xdi', 'r') as xdi_document:
+    
+    # Validate the file. If there is no end-of-header token
+    # an exception is raised
+    try:
+        xdi_errors, xdi_dict = validate(xdi_document)
+    except XDIEndOfHeaderMissingError as ex:
+        print(ex.message)
+        
+# check if there are errors
+if xdi_errors:
+    print('XDI is invalid!')
+    # use the information in xdi_errors to correct the data
+    # in the generated xdi_dict 
+    ...
+    # write the corrected data to file
+    errors = write_xdi('corrected_file.xdi', xdi_dict)
+    if not errors:
+        print('Corrected file saved.')
+    else:
+        print(errors)
+else:
+    print('XDI is valid!')
+    print(xdi_dict)
+
+```
+
 ## How to install?
 
 XDI-Validator is available in PyPI. The project page is https://pypi.org/project/xdi-validator/.
