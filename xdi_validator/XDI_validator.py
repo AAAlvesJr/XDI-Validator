@@ -195,23 +195,42 @@ def validate(file: io.TextIOWrapper, include_data: bool = True) -> tuple[list, d
 
     # DATA =======================================>
     if include_data:
+        # Initialize 'data' as a list of lists corresponding to the number of columns
+        # Check for 'column' key before proceeding
+        if "column" not in xdi_dict:
+             # Log a critical error and return or raise an exception
+             error_list["column"] = [f"[CRITICAL ERROR] 'Column' namespace missing in header."]
+             # Decide if to return or continue
+             # If you continue, you need a placeholder for the column count, e.g., 0
+             column_count = 0
+        else:
+             column_count = len(xdi_dict["column"])
+    
+        # Only initialize xdi_dict["data"] if columns are present
+        if column_count > 0:
+             xdi_dict["data"] = list([list() for _ in range(column_count)])
+        else:
+             # If no columns are defined, simply don't process the data and log an error
+             if len(data) > 0:
+                 error_list["data"] = [f"[ERROR] Data exists, but no 'Column' tags were found to define structure."]
+             # Skip the rest of the data processing loop if no columns
+             # ... but 'data' is still iterated over for error checking
+    
         for idx, match in enumerate(data):
-            if "data" not in xdi_dict:
-                xdi_dict["data"] = list([list() for _ in range(len(xdi_dict["column"]))])
-
-            if len(match) != len(xdi_dict["column"]):
-
+            if len(match) != column_count:
                 if "data" not in error_list:
                     error_list["data"]=[]
-
-            error_list["data"].append(
-                f"[ERROR] <Data Line>: {idx} - <Message>: The number of tags in Column namespace ({len(xdi_dict['column'])}) "
-                f"does not match the number of measurements data section ({len(match)})."
-            )
-            continue
-
-        for i in range(len(xdi_dict["column"])):
-            xdi_dict["data"][i].append(match[i])
+    
+                error_list["data"].append(
+                    f"[ERROR] <Data Line>: {idx} - <Message>: The number of tags in Column namespace ({column_count}) "
+                    f"does not match the number of measurements data section ({len(match)})."
+                )
+                continue # Skip this data row
+    
+            # Only append data if column_count > 0 (meaning xdi_dict["data"] exists) and length matches
+            if column_count > 0:
+                for i in range(column_count):
+                    xdi_dict["data"][i].append(match[i])
 
     # DATA COMMENT LINE ==========================>
     if "array_labels_line" not in xdi_dict:
