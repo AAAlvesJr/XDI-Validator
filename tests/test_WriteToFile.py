@@ -38,8 +38,6 @@ class TestWriteToFile(unittest.TestCase):
 
     def test_dicts_match(self):
 
-        data= None
-        errors = None
         with open("tests/generated_valid.xdi", "r") as xdi:
             errors, data = validate(xdi)
 

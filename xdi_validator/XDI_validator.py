@@ -152,28 +152,28 @@ def validate(file: io.TextIOWrapper) -> tuple[list, dict]:
 
     # VERSION ====================================>
     for match, index in versions:
-        xdi_dict["version"] = match.group("version")
-        xdi_dict["subversion"] = match.group("subversion")
-        xdi_dict["patch"] = match.group("patch")
-        xdi_dict["application"] = match.group("application")
-        path_dict[match.group("version").lower()] = index
-        path_dict[match.group("subversion").lower()] = index
+        xdi_dict["version"] = match.group("version").rstrip()
+        xdi_dict["subversion"] = match.group("subversion").rstrip()
+        xdi_dict["patch"] = match.group("patch").rstrip()
+        xdi_dict["application"] = match.group("application").rstrip()
+        path_dict[match.group("version").lower().rstrip()] = index
+        path_dict[match.group("subversion").lower().rstrip()] = index
 
     # FIELDS =====================================>
     for match, index in fields:
-        if match.group("namespace").lower() not in xdi_dict:
-            xdi_dict[match.group("namespace").lower()] = {}
-            path_dict[match.group("namespace").lower()] = {}
+        if match.group("namespace").lower().rstrip() not in xdi_dict:
+            xdi_dict[match.group("namespace").lower().rstrip()] = {}
+            path_dict[match.group("namespace").lower().rstrip()] = {}
 
         if match.group("tag").lower() in xdi_dict[match.group("namespace").lower()]:
 
-            if f"{match.group('namespace').lower()}.{match.group('tag').lower()}" not in error_list:
-                 error_list[f"{match.group('namespace').lower()}.{match.group('tag').lower()}"]=[]
+            if f"{match.group('namespace').lower().rstrip()}.{match.group('tag').lower().rstrip()}" not in error_list:
+                 error_list[f"{match.group('namespace').lower().rstrip()}.{match.group('tag').lower().rstrip()}"]=[]
 
-            ln = path_dict[f"{match.group('namespace').lower()}.{match.group('tag').lower()}"]
-            error_list[f"{match.group('namespace').lower()}.{match.group('tag').lower()}"].append(
-                f"[ERROR] - <Line>: {index} - <Message>: the tag '{match.group('tag').lower()}' in "
-                f"the namespace '{match.group('namespace').lower()}' is repeated and will be overwritten by the latest appearance. "
+            ln = path_dict[f"{match.group('namespace').lower().rstrip()}.{match.group('tag').lower().rstrip()}"]
+            error_list[f"{match.group('namespace').lower().rstrip()}.{match.group('tag').lower().rstrip()}"].append(
+                f"[ERROR] - <Line>: {index} - <Message>: the tag '{match.group('tag').lower().rstrip()}' in "
+                f"the namespace '{match.group('namespace').lower().rstrip()}' is repeated and will be overwritten by the latest appearance. "
                 f"Previous definition at line {ln}"
             )
 
@@ -181,7 +181,7 @@ def validate(file: io.TextIOWrapper) -> tuple[list, dict]:
             __cast_to_number(match.group("value"))
         )
         path_dict[
-            f"{match.group('namespace').lower()}.{match.group('tag').lower()}"
+            f"{match.group('namespace').lower().rstrip()}.{match.group('tag').lower().rstrip()}"
         ] = index
 
     # COMMENTS ===================================>
@@ -311,7 +311,7 @@ def write_xdi( obj:dict, filename:str) -> dict|None:
         buffer.write((f"# XDI/{obj['version']}."
                       f"{obj['subversion']}."
                       f"{obj['patch']} "
-                      f"{obj['application']}"))
+                      f"{obj['application']}\n"))
 
         # conventional fields
         for namespace in ['facility', 'beamline', 'mono', 'detector', 'sample', 'scan', 'element', 'column']:
