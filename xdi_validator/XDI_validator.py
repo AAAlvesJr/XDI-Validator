@@ -305,6 +305,8 @@ def write_xdi( obj:dict, filename:str) -> dict|None:
 
         return error_dict
 
+    if len(obj['data']) != len(obj['column']):
+        return dict(data='Number of declared columns does not match the number of columns in data table.')
 
     with open(filename, "wt") as buffer:
         # version info
