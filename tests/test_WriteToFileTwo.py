@@ -3,12 +3,12 @@ import unittest
 from xdi_validator import validate, write_xdi
 import copy
 
-class TestWriteToFile(unittest.TestCase):
+class TestWriteToFileTwo(unittest.TestCase):
 
 
     def setUp(self):
 
-        with open(os.path.dirname(__file__) + "/valid.xdi", "r") as valid_xdi:
+        with open(os.path.dirname(__file__) + "/valid2.xdi", "r") as valid_xdi:
             self.errors, self.data = validate(valid_xdi)
 
         self.generate_xdi_result = write_xdi(self.data, os.path.dirname(__file__) + "/generated_valid.xdi" )

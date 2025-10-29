@@ -1,3 +1,4 @@
+import os
 import unittest
 
 import xdi_validator
@@ -8,7 +9,7 @@ class TestMissingEndOfHeader(unittest.TestCase):
 
     def setUp(self):
 
-        self.file =  open("tests/missing_end_of_header.xdi", "r")
+        self.file =  open( os.path.dirname(__file__) + "/missing_end_of_header.xdi", "r")
 
     def tearDown(self):
         self.file.close()

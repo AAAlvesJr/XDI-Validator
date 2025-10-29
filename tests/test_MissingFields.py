@@ -1,3 +1,4 @@
+import os
 import unittest
 from xdi_validator import validate
 
@@ -6,7 +7,7 @@ class TestMissingFields(unittest.TestCase):
 
     def setUp(self):
 
-        with open("tests/missing_fields.xdi", "r") as wrong_fields:
+        with open(os.path.dirname(__file__) + "/missing_fields.xdi", "r") as wrong_fields:
             self.errors, self.data = validate(wrong_fields)
 
     def tearDown(self):
