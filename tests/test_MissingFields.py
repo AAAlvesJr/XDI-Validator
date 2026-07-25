@@ -18,5 +18,9 @@ class TestMissingFields(unittest.TestCase):
         self.assertIn("element", self.errors)
         self.assertEqual(2, len(self.errors["element"]))
 
-    def test_missing_mono(self):
-        self.assertIn("mono", self.errors)
+    def test_mono_dspacing_not_required_for_energy_abscissa(self):
+        # missing_fields.xdi has Column.1: energy — per XDI/1.0 spec,
+        # Mono.d_spacing is only required when the abscissa is
+        # monochromator angle or encoder step count. So no mono error
+        # should fire despite Mono.d_spacing being absent.
+        self.assertNotIn("mono", self.errors)
