@@ -1,0 +1,23 @@
+# XDI/1.0 EDC/5.02
+# Beamline.name: X11A
+# Column.1: angle deg
+# Column.2: mutrans
+# Element.edge: K
+# Element.symbol: Cu
+# Facility.energy: 2.584 GeV
+# Facility.name: NSLS
+# Facility.xray_source: bend magnet
+# Mono.d_spacing: 3.135301
+# Mono.name: Si(111)
+# Sample.name: Cu
+# Sample.prep: Cu metal foil
+# Sample.temperature: 10 K
+# Scan.edge_energy: 8980.0 eV
+# Scan.start_time: 1992-09-15T01:52:53
+# ///
+# Cu foil, 10K — angle abscissa with Mono.d_spacing present
+# ---
+#     angle           mutrans
+   .1234500E+02    .1013661E+01
+   .1234600E+02    .9949864E+00
+   .1234700E+02    .9900679E+00

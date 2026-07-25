@@ -408,7 +408,6 @@ def get_schema() -> dict:
                     "name": {"type": "string"},
                     "d_spacing": {"type": "number"},
                 },
-                "required": ["d_spacing"],
             },
             "detector": {
                 "description": "Tags related to the details of the photon detection system",
@@ -566,6 +565,37 @@ def get_schema() -> dict:
             },
         },
         "required": ["version", "subversion", "element", "mono"],
+        "allOf": [
+            {
+                "$comment": (
+                    "XDI/1.0 spec: 'The Mono.d_spacing header field must be "
+                    "specified if the abscissa is conveyed as monochromator "
+                    "angle.' d_spacing is required only when Column.1 "
+                    "(the abscissa) is angle or encoder; for energy or "
+                    "wavelength abscissae, d_spacing is optional. "
+                    "See https://github.com/XraySpectroscopy/"
+                    "XAS-Data-Interchange/blob/master/specification/spec.md"
+                ),
+                "if": {
+                    "properties": {
+                        "column": {
+                            "properties": {
+                                "1": {
+                                    "pattern": "^(angle|encoder)(\\s|$)"
+                                }
+                            },
+                            "required": ["1"]
+                        }
+                    },
+                    "required": ["column"]
+                },
+                "then": {
+                    "properties": {
+                        "mono": {"required": ["d_spacing"]}
+                    }
+                }
+            }
+        ],
     }
 
     return schemadef

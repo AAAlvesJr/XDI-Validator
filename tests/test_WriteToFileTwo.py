@@ -14,6 +14,9 @@ class TestWriteToFileTwo(unittest.TestCase):
         self.generate_xdi_result = write_xdi(self.data, os.path.dirname(__file__) + "/generated_valid.xdi" )
         self.invalid_data = copy.deepcopy(self.data)
         self.invalid_data["element"].pop("symbol")
+        # Switch abscissa to angle so d_spacing becomes required per
+        # XDI/1.0 spec; then remove it to exercise the mono error path.
+        self.invalid_data["column"]["1"] = "angle deg"
         self.invalid_data["mono"].pop("d_spacing")
 
 
