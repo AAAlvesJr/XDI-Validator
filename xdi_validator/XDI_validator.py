@@ -24,6 +24,7 @@ from datetime import datetime
 
 import jsonschema
 import io
+from datetime import datetime
 
 
 class XDIEndOfHeaderMissingError(Exception):
@@ -33,7 +34,7 @@ class XDIEndOfHeaderMissingError(Exception):
 
 
 
-def validate(file: io.TextIOWrapper) -> tuple[list, dict]:
+def validate(file: io.TextIOWrapper, include_data: bool = True) -> tuple[list, dict]:
     """
     Analyse and validate contents of a XDI file against the XDI specification version 1.0 as
     described in https://github.com/XraySpectroscopy/XAS-Data-Interchange/blob/master/specification/xdi_spec.pdf.
@@ -44,7 +45,10 @@ def validate(file: io.TextIOWrapper) -> tuple[list, dict]:
 
         xdi_document = open('filename.xdi', 'r')
         try:
-            xdi_errors, xdi_dict = validate_xdi(xdi_document)
+            # Get only header information
+            xdi_errors, xdi_dict = validate_xdi(xdi_document, include_data=False)
+            # Or get both header and data columns
+            xdi_errors, xdi_dict = validate_xdi(xdi_document, include_data=True)
         except XDIEndOfHeaderMissingError as ex:
             print(ex.message)
 
@@ -55,8 +59,9 @@ def validate(file: io.TextIOWrapper) -> tuple[list, dict]:
                 print(error)
     ```
     Args:
-
         :param file: File-like object containing a xdi document.
+        :param include_data: Boolean flag to control whether to include data columns in the output dictionary.
+                           If False, only header information will be included.
         :return: Tuple(error_list, json_repr), where error_list is a list containing errors found in the xdi and
         json_repr is a json dict representing the structure of the xdi file.
         :exception: Raises a XDIEndOfHeaderMissingError if the token to mark the end of header is not present or
@@ -191,23 +196,43 @@ def validate(file: io.TextIOWrapper) -> tuple[list, dict]:
         xdi_dict["comments"].append(match.group(1).rstrip().strip())
 
     # DATA =======================================>
-    for idx, match in enumerate(data):
-        if "data" not in xdi_dict:
-            xdi_dict["data"] = list([list() for _ in range(len(xdi_dict["column"]))])
-
-        if len(match) != len(xdi_dict["column"]):
-
-            if "data" not in error_list:
-                error_list["data"]=[]
-
-            error_list["data"].append(
-                f"[ERROR] <Data Line>: {idx} - <Message>: The number of tags in Column namespace ({len(xdi_dict['column'])}) "
-                f"does not match the number of measurements data section ({len(match)})."
-            )
-            continue
-
-        for i in range(len(xdi_dict["column"])):
-            xdi_dict["data"][i].append(match[i])
+    if include_data:
+        # Initialize 'data' as a list of lists corresponding to the number of columns
+        # Check for 'column' key before proceeding
+        if "column" not in xdi_dict:
+             # Log a critical error and return or raise an exception
+             error_list["column"] = [f"[CRITICAL ERROR] 'Column' namespace missing in header."]
+             # Decide if to return or continue
+             # If you continue, you need a placeholder for the column count, e.g., 0
+             column_count = 0
+        else:
+             column_count = len(xdi_dict["column"])
+    
+        # Only initialize xdi_dict["data"] if columns are present
+        if column_count > 0:
+             xdi_dict["data"] = list([list() for _ in range(column_count)])
+        else:
+             # If no columns are defined, simply don't process the data and log an error
+             if len(data) > 0:
+                 error_list["data"] = [f"[ERROR] Data exists, but no 'Column' tags were found to define structure."]
+             # Skip the rest of the data processing loop if no columns
+             # ... but 'data' is still iterated over for error checking
+    
+        for idx, match in enumerate(data):
+            if len(match) != column_count:
+                if "data" not in error_list:
+                    error_list["data"]=[]
+    
+                error_list["data"].append(
+                    f"[ERROR] <Data Line>: {idx} - <Message>: The number of tags in Column namespace ({column_count}) "
+                    f"does not match the number of measurements data section ({len(match)})."
+                )
+                continue # Skip this data row
+    
+            # Only append data if column_count > 0 (meaning xdi_dict["data"] exists) and length matches
+            if column_count > 0:
+                for i in range(column_count):
+                    xdi_dict["data"][i].append(match[i])
 
     # DATA COMMENT LINE ==========================>
     if "array_labels_line" not in xdi_dict:
@@ -272,6 +297,95 @@ def validate(file: io.TextIOWrapper) -> tuple[list, dict]:
 
     return error_list, xdi_dict
 
+def write_xdi( obj:dict, filename:str) -> dict|None:
+    """
+    This function will try to convert a dictionary to xdi file. The input dictionary should follow
+    the overall structure of the dictionaries generated by :meth:`xdi_validator.validate()` method.
+    :meth:`write_xdi` will validate the input dictionary against the same schema used by :meth:`xdi_validator.validate()`
+    and return the dict containing the map of json paths and corresponding errors, or None, if no error is found.
+
+    :param obj: dictionary to be converted to xdi format and written to file.
+    :param filename: name of the file that will hold the xdi data.
+    :return: dict containing the map of json paths and corresponding errors, or None, if no error is found
+    """
+
+    ## validate overall structure
+    Vtor = jsonschema.Draft202012Validator(get_schema())
+
+    
+    try:
+
+        Vtor.validate(obj)
+
+    except jsonschema.exceptions.ValidationError:
+
+        error_dict = {}
+
+        for error in Vtor.iter_errors(obj):
+            key = error.json_path.replace("$.", "")
+            if key not in error_dict:
+                error_dict[key]=[]
+            error_dict[key].append(error.message)
+
+        return error_dict
+
+
+    with open(filename, "wt") as buffer:
+        # version info
+        buffer.write((f"# XDI/{obj['version']}."
+                      f"{obj['subversion']}."
+                      f"{obj['patch']} "
+                      f"{obj['application']}"))
+
+        # conventional fields
+        for namespace in ['facility', 'beamline', 'mono', 'detector', 'sample', 'scan', 'element', 'column']:
+            if namespace not in obj:
+                continue
+            if not isinstance(obj[namespace], dict):
+                continue
+            for tag, value in obj[namespace].items():
+                if isinstance(value, datetime):
+                    value = value.isoformat()
+                buffer.write(f"# {namespace.capitalize()}.{tag}: {value}\n")
+
+        # unconventional fields
+        ufields = list(set(obj.keys()).symmetric_difference(
+            set(['version', 'subversion', 'patch', 'facility', 'beamline', 'mono', 'detector',
+                 'sample', 'scan', 'element', 'column']))
+        )
+
+        for namespace in ufields:
+            if namespace not in obj:
+                continue
+            if not isinstance(obj[namespace], dict):
+                continue
+            for tag, value in obj[namespace].items():
+                if isinstance(value, datetime):
+                    value = value.isoformat()
+                buffer.write(f"# {namespace.capitalize()}.{tag}: {value}\n")
+
+        # comments
+        if 'comments' in obj:
+            buffer.write(f"# //////////\n")
+            for line in obj['comments']:
+                buffer.write(f"# {line}\n")
+
+        # end of header
+        buffer.write(f"# ----------\n")
+
+        # array labels line
+        labels = ""
+        for _, col in obj['column'].items():
+            labels += (" " + col.split(' ')[0])
+        buffer.write(f"# {labels}\n")
+
+        cols_tp = tuple(obj['data'])
+        table = zip(*cols_tp)
+        for row in table:
+            line = " ".join(tuple(map(str, row))) + "\n"
+            buffer.write(line)
+
+        return None
 
 def write_xdi( obj:dict, filename:str) -> dict|None:
     """
