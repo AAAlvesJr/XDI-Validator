@@ -83,8 +83,16 @@ def validate(file: io.TextIOWrapper) -> tuple[list, dict]:
 
     regex_version = r"^# XDI/(?P<version>\d+)\.(?P<subversion>\d+)\.?(?P<patch>\d*)\s+?(?P<application>[\w\W\D]*)$"
     regex_fields = r"^# (?P<namespace>\w+)\.(?P<tag>\w+):\s*(?P<value>[\w\W\s*]+)\n$"
-    regex_fields_end = r"^#\s+///(/*)$"
-    regex_header_end = r"^#\s+---(-*)$"
+    # The specification defines these two separators as
+    #   comment token + separator token + end-of-line token
+    # where the separator token is "three or more" slashes or dashes.
+    # No whitespace token sits between the comment token and the
+    # separator token, so requiring one (\s+) rejects a conforming file.
+    # The spec's illustrative examples happen to show a space, but the
+    # grammar above them does not call for it, and 258 of the 272 files
+    # in the XDI Data Library write the header-end line as "#-----".
+    regex_fields_end = r"^#\s*/{3,}$"
+    regex_header_end = r"^#\s*-{3,}$"
     regex_comment = r"#\s+((\w*\W*\s*)+)"
     regex_float = r"([+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*))(?:[Ee]([+-]?\d+))?"
     regex_annotation_line = r"(\s*\w+)"
