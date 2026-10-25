@@ -24,7 +24,7 @@ license-files = ["LICENSE"]
 keywords = ["xas", "xdi", "validation"]
 classifiers = [
     "Development Status :: 4 - Beta",
-    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.13",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License"
